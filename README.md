@@ -82,7 +82,7 @@ This will fail ^
 ## Add NSG's
 
 ## Change rules around
-## Change rules to allow/deny internet access
+## Change NSG rules to allow/deny internet access
 ## Change rules to...
 
 
@@ -91,25 +91,35 @@ This will fail ^
 
 ## Create a Public IP Address
 
+
+
 ## Create a Routing Table
 
 ## Create an Azure Traffic Manager Policy
 
 ## Create an Application Gateway
 
-## Service Tags demo
+### Add Application Gateway to NSG
 
-## Create a Virtual Network Gateway (but can't create an ER connection...)
 
+## Service Tags
+### Add Service Tag to NSG
+allow/deny traffic to load balancer
 
 ## Create a Service Endpoint
 
 ## Create a Private Endpoint
-
+Create storage account
+Create private IP address
+Storage account resource firewall
 
 ## Clean Up
 ```
 az group delete --name myResourceGroup --yes
 az group delete --name myResourceGroup2 --yes
 ```
+
+
+Other stuff:
+## Create a Virtual Network Gateway (but can't create an ER connection...)
 
