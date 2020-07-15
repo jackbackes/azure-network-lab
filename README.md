@@ -2,6 +2,12 @@
 
 `go/azure-trainers`
 
+## Login to your PERSONAL Azure account
+```
+az login
+```
+
+
 ## Create a resource group
 In Azure, every object you create is called a "resource".
 A "resource group" is a logical, operational container of resources. It has
@@ -156,6 +162,7 @@ az network vnet peering create \
   --resource-group myResourceGroup \
   --remote-vnet $(az network vnet show --name myVirtualNetwork2 -g myResourceGroup2 --query id --output tsv) \
   --vnet-name virtualNetwork1 \
+  --allow-vnet-access \
   --verbose
 
 az network vnet peering create \
@@ -163,6 +170,7 @@ az network vnet peering create \
   --resource-group myResourceGroup2 \
   --vnet-name myVirtualNetwork2 \
   --remote-vnet $(az network vnet show --name virtualNetwork1 -g myResourceGroup --query id --output tsv) \
+  --allow-vnet-access \
   --verbose
 ```
 
