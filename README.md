@@ -200,7 +200,7 @@ az network nsg rule create -g myResourceGroup --nsg-name vnet1subnet2nsg \
   --destination-address-prefixes $vm1PrivateIp --destination-port-ranges '*' \
   --access Deny \
   --protocol ICMP \
-  --priority 100 \
+  --priority 1000 \
   --name "block-icmp-vm3-to-vm1" \
   --description "Block ICMP Ping from VM3 to VM1"
 
@@ -225,7 +225,7 @@ az network nsg rule create -g myResourceGroup --nsg-name vnet1subnet2nsg \
   --access Deny \
   --direction Outbound \
   --protocol TCP \
-  --priority 110 \
+  --priority 1010 \
   --name "block-internet-from-vm1" \
   --description "Block Internet from VM1"
 
@@ -234,23 +234,172 @@ ssh $vm1PublicIp "wget --timeout=5 http://www.google.com"
 
 ```
 
-## Create a Load Balancer
-```
-az network lb create \
-  --name myLB \
-  -g myResourceGroup \
-  -l eastus \
-  --sku Standard \
-  --subnet subnet2 \
-  --vnet-name virtualNetwork1
-
-# This doesn't work but should:
-
-az network lb address-pool address add --lb-name myLB2 --pool-name myLB2bepool --resource-group myResourceGroup -n "address-name" --vnet virtualNetwork1 --ip-address 10.0.1.8
-```
+## Create a stabdard load balancer to load balance VMs using Azure CLI
+To test the load balancer, we will deploy two virtual machines (VMs) 
+running Ubuntu server and load balance a web app between the two VMs
 
 ## Create a Public IP Address
 
+```
+az network public-ip create \
+    --resource-group myResourceGroup \
+    --name myPublicIP
+```
+
+## Create a Loadbalancer with backendpool and PublicIP 
+
+```
+az network lb create \
+    --resource-group myResourceGroup \
+    --name myLoadBalancer \
+    --frontend-ip-name myFrontEndPool \
+    --backend-pool-name myBackEndPool \
+    --public-ip-address myPublicIP
+```
+
+## Create a healthcheck for the loadbalancer 
+
+```
+az network lb probe create \
+    --resource-group myResourceGroup \
+    --lb-name myLoadBalancer \
+    --name myHealthProbe \
+    --protocol tcp \
+    --port 80
+```
+
+## Create a loadbalancer rule
+
+```
+az network lb rule create \
+    --resource-group myResourceGroup \
+    --lb-name myLoadBalancer \
+    --name myLoadBalancerRule \
+    --protocol tcp \
+    --frontend-port 80 \
+    --backend-port 80 \
+    --frontend-ip-name myFrontEndPool \
+    --backend-pool-name myBackEndPool \
+    --probe-name myHealthProbe
+```
+
+## Add NSG rule
+
+```
+az network nsg rule create \
+    --resource-group myResourceGroup \
+    --nsg-name vnet1subnet2nsg \
+    --name myNetworkSecurityGroupLBRule \
+    --priority 100 \
+    --protocol tcp \
+    --destination-port-range 80
+```
+
+## Create network interface cards tp be compliant with the LB pool 
+
+```
+for i in `seq 1 2`; do
+    az network nic create \
+        --resource-group myResourceGroup \
+        --name myNic$i \
+        --vnet-name virtualNetwork1 \
+        --subnet subnet2 \
+        --network-security-group vnet1subnet2nsg \
+        --lb-name myLoadBalancer \
+        --lb-address-pools myBackEndPool
+done
+```
+
+## cloud-init configuration file to install NGINX and run a simple 'Hello World' Node.js app to VMS
+
+```
+vi cloud-init.txt
+
+#cloud-config
+package_upgrade: true
+packages:
+  - nginx
+  - nodejs
+  - npm
+write_files:
+  - owner: www-data:www-data
+  - path: /etc/nginx/sites-available/default
+    content: |
+      server {
+        listen 80;
+        location / {
+          proxy_pass http://localhost:3000;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection keep-alive;
+          proxy_set_header Host $host;
+          proxy_cache_bypass $http_upgrade;
+        }
+      }
+  - owner: azureuser:azureuser
+  - path: /home/azureuser/myapp/index.js
+    content: |
+      var express = require('express')
+      var app = express()
+      var os = require('os');
+      app.get('/', function (req, res) {
+        res.send('Hello World from host ' + os.hostname() + '!')
+      })
+      app.listen(3000, function () {
+        console.log('Hello world app listening on port 3000!')
+      })
+runcmd:
+  - service nginx restart
+  - cd "/home/azureuser/myapp"
+  - npm init
+  - npm install express -y
+  - nodejs index.js
+
+```
+
+## To improve the high availability of the app, create an availability set
+
+```
+az vm availability-set create \
+    --resource-group myResourceGroup \
+    --name myAvailabilitySet
+```
+
+## create the VMs 
+
+```
+for i in `seq 1 2`; do
+    az vm create \
+        --resource-group myResourceGroup \
+        --name myLBVM$i \
+        --availability-set myAvailabilitySet \
+        --nics myNic$i \
+        --image UbuntuLTS \
+        --admin-username azureuser \
+        --generate-ssh-keys \
+        --custom-data cloud-init.txt
+done
+```
+
+## Testing the load balancer 
+
+## Obtain the public IP address of your load balancer 
+Enter the public IP address in to a web browser, refresh to see the load being balanced between 2 VMs
+
+```
+az network public-ip show \
+    --resource-group myResourceGroup \
+    --name myPublicIP \
+    --query [ipAddress] \
+    --output tsv
+```
+
+## If the load is not alternating between 2 VMs, just for fun try this below hack
+
+```
+az vm stop --resource-group myResourceGroup --name myLBVM1
+az vm start --resource-group myResourceGroup --name myLBVM1
+```
 
 
 ## Create a Routing Table
@@ -278,7 +427,6 @@ Storage account resource firewall
 az group delete --name myResourceGroup --yes
 az group delete --name myResourceGroup2 --yes
 ```
-
 
 Other stuff:
 ## Create a Virtual Network Gateway (but can't create an ER connection...)
