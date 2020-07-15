@@ -158,3 +158,6 @@ az network vnet subnet update \
   --vnet-name MyVnet \
   --resource-group $RgName \
   --route-table MyRouteTable-BackEnd
+
+#Delete RG once done
+## az group delete --name $RgName --yes

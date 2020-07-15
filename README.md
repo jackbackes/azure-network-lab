@@ -403,17 +403,30 @@ az vm start --resource-group myResourceGroup --name myLBVM1
 
 ## Service Tags
 ### Add Service Tag to NSG
-allow/deny traffic to load balancer
+https://docs.microsoft.com/en-us/azure/virtual-network/service-tags-overview
+allow/deny traffic from Internet 
+
 
 ## Create a Service Endpoint
+
+```
+./azure-service-endpoint-mysqldb.sh
+```
 
 ## Create a Private Endpoint
 Create storage account
 Create private IP address
 Storage account resource firewall
+```
+./azure-private-endpoint-mysqldb.sh
+```
 
+NOTE: service endpoint remains a publicly routable IP while a private endpoint is a private ip in the addr space of the VNET
 
 ## Create a Routing Table
+```
+./azure-route-table-cli.sh
+```
 
 ## Create an Azure Traffic Manager Policy
 
@@ -422,6 +435,7 @@ Storage account resource firewall
 ### Add Application Gateway to NSG
 
 ## Clean Up
+
 ```
 az group delete --name myResourceGroup --yes
 az group delete --name myResourceGroup2 --yes
