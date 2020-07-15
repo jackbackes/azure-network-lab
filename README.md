@@ -401,16 +401,6 @@ az vm stop --resource-group myResourceGroup --name myLBVM1
 az vm start --resource-group myResourceGroup --name myLBVM1
 ```
 
-
-## Create a Routing Table
-
-## Create an Azure Traffic Manager Policy
-
-## Create an Application Gateway
-
-### Add Application Gateway to NSG
-
-
 ## Service Tags
 ### Add Service Tag to NSG
 allow/deny traffic to load balancer
@@ -421,6 +411,15 @@ allow/deny traffic to load balancer
 Create storage account
 Create private IP address
 Storage account resource firewall
+
+
+## Create a Routing Table
+
+## Create an Azure Traffic Manager Policy
+
+## Create an Application Gateway
+
+### Add Application Gateway to NSG
 
 ## Clean Up
 ```
